@@ -1,0 +1,10 @@
+[package]
+name = "check_idrac"
+version = "0.1.0"
+authors = ["lagooj <lagooj@m-projects.org>"]
+edition = "2018"
+
+[dependencies]
+ssh = "0.1.4"
+clap = "2"
+
