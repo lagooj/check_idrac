@@ -1,6 +1,10 @@
 extern crate clap;
+extern crate ssh2;
 use clap::{Arg, App, ArgMatches};
-use std::ffi::OsString;
+
+use std::io::prelude::*;
+use std::net::TcpStream;
+use ssh2::Session;
 
 fn main() {
 
@@ -32,23 +36,44 @@ fn main() {
              .multiple(false))
         .get_matches();
 
-
+    println!("{}",get_hostname(&cli_matches));
+    println!("{}",get_user(&cli_matches));
+    println!("{}",get_password(&cli_matches));
 }
 
 
-pub fn get_hostname(matches :&ArgMatches) -> &str {
-    matches.value_of("hostname").expect("Warning threshold must be set")
+pub fn get_hostname<'a>(matches :&'a ArgMatches) -> &'a str {
+    matches.value_of("hostname").expect("Host muse be set")
 }
 
-pub fn get_user(matches :&ArgMatches) -> &str {
-    matches.value_of("user").expect("Warning threshold must be set")
+pub fn get_user<'a>(matches :&'a ArgMatches) -> &'a str {
+    matches.value_of("user").expect("user muste be set")
 }
 
-pub fn get_password(matches :&ArgMatches) -> &str {
-    matches.value_of("password").expect("Warning threshold must be set")
+pub fn get_password<'a>(matches :&'a ArgMatches) -> &'a str {
+    matches.value_of("password").expect("password must be set")
 }
 
 
 pub fn get_verbose(matches :&ArgMatches) -> bool {
     matches.is_present("v")
+}
+
+
+pub fn ssh_connect(hostname: &'static str, user: &'static str, password: &'static str) ->Result {
+
+    let tcp = TcpStream::connect(format!("{}:22", hostname)).expect("Should be see");
+    let mut sess = Session::new().unwrap();
+    sess.handshake(&tcp).unwrap();
+
+    sess.userauth_password(user, password).unwrap();
+    assert!(sess.authenticated());
+
+    let mut channel = sess.channel_session().unwrap();
+    channel.exec("ls").unwrap();
+    let mut s = String::new();
+    channel.read_to_string(&mut s).unwrap();
+    println!("{}", s);
+    channel.wait_close().expect("Should be closed");
+    println!("{}", channel.exit_status().unwrap());
 }
